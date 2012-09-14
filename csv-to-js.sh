@@ -53,7 +53,7 @@ while [ "${1}" != "" ]; do
 	shift
 done
 
-NAME=`echo "${DATA%.*}" | sed -r "s/\s//g"`
+NAME=`echo "${DATA%.*}" | sed -e "s/[ ]*//g"`
 
 JS=${NAME}.js
 
@@ -61,28 +61,30 @@ echo "/* Created with csv_to_js (c) Sean Lander */" > ${JS}
 echo "" >> ${JS}
 echo "/* Creating Data object ${NAME} */" >> ${JS}
 
-echo "${NAME} = {};" >> ${JS}
+echo "var training_sets = training_sets || {};" >> ${JS}
+
+echo "" >> ${JS}
+
+echo "training_sets[\"${NAME}\"] = {};" >> ${JS}
 
 if [ ${FRONT} != ${FALSE} ]; then
-	sed -r "s/^([a-zA-Z0-9.\-]+),(.*)$/\2,\1/g" ${DATA} > ${TEMP}
+	sed -e "s/^[ ]*\([a-zA-Z0-9.\-][a-zA-Z0-9.\-]*\),\(.*\)$/\2,\1/g" ${DATA} > ${TEMP}
 else
-	cat ${DATA} > ${TEMP}
+	sed -e "s/^[ ]*//g" ${DATA} > ${TEMP}
 fi;
 
 if [ $HEADER == $TRUE ]; then
-	echo "${NAME}.header = [`head -1 $DATA | sed -r "s/${DELIM}/,/g"`];" >> ${JS}
-	echo "${NAME}.data = [" >> ${JS}
-	tail -n +2 ${TEMP} | head -n -1 | sed -r "s/${DELIM}/,/g" | sed -r "s/^/\[/g" | sed -r "s/$/\],\
-		/g" >> ${JS}
-	tail -1 ${TEMP} | sed -r "s/${DELIM}/,/g" | sed -r "s/^/\[/g" | sed -r "s/$/\]\
-		/g" >> ${JS}
+	echo "training_sets[\"${NAME}\"].header = [`head -1 $DATA | sed -e "s/[ ]*${DELIM}[ ]*/,/g"`];" >> ${JS}
+	echo "training_sets[\"${NAME}\"].data = [" >> ${JS}
+	tail -n +2 ${TEMP} | sed -e "s/[ ]*${DELIM}[ ]*/,/g" | sed -e "s/^/\[/g" | sed -e "$ ! s/$/\],\
+		/g" | sed -e "$ s/$/\]\
+		/g"  >> ${JS}
 	echo "];" >> ${JS}
 else
-	echo "${NAME}.data = [" >> ${JS}
-	tail -n +1 ${TEMP} | head -n -1 | sed -r "s/${DELIM}/,/g" | sed -r "s/^/\[/g" | sed -r "s/$/\],\
-		/g" >> ${JS}
-	tail -1 ${TEMP} | sed -r "s/${DELIM}/,/g" | sed -r "s/^/\[/g" | sed -r "s/$/\]\
-		/g" >> ${JS}
+	echo "training_sets[\"${NAME}\"].data = [" >> ${JS}
+	tail -n +1 ${TEMP} | sed -e "s/[ ]*${DELIM}[ ]*/,/g" | sed -e "s/^/\[/g" | sed -e "$ ! s/$/\],\
+		/g" | sed -e "$ s/$/\]\
+		/g"  >> ${JS}
 	echo "];" >> ${JS}
 fi;
 
